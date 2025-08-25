@@ -1,23 +1,47 @@
 #!/usr/bin/env bash
-# WAN/T2V/I2V model downloader with size checks, resume, mirror fallbacks, and prompts.
-# Models go under /ComfyUI/models/{unet,vae,text_encoders,loras,upscale_models}
+# WAN/T2V/I2V model installer for /workspaces/ComfyUI
+# - size checks + resume
+# - mirror fallbacks
+# - optional migration from /ComfyUI -> /workspaces/ComfyUI
 
 set -euo pipefail
 
-COMFY_HOME="/ComfyUI"
-MODELS_DIR="$COMFY_HOME/models"
+COMFY_ROOT="/workspaces/ComfyUI"
+MODELS_DIR="$COMFY_ROOT/models"
 
 say(){ printf "%s\n" "$*"; }
 need(){ command -v "$1" >/dev/null 2>&1 || { say "Missing command: $1"; exit 1; }; }
 need curl
 
-mkdir -p "$MODELS_DIR"/{unet,loras,text_encoders,vae,upscale_models}
+mkdir -p "$MODELS_DIR"/{diffusion_models,loras,text_encoders,vae,upscale_models}
+
+# ---------- optional migration from /ComfyUI ----------
+if [[ -d "/ComfyUI/models" && "/ComfyUI" != "$COMFY_ROOT" ]]; then
+  say "== Migrating any models from /ComfyUI -> $MODELS_DIR =="
+  shopt -s nullglob
+  for sub in diffusion_models loras text_encoders vae upscale_models unet; do
+    src="/ComfyUI/models/$sub"
+    [[ -d "$src" ]] || continue
+    # create target subdir (map 'unet' to diffusion_models for WAN T2V)
+    tgt="$MODELS_DIR/$sub"
+    [[ "$sub" == "unet" ]] && tgt="$MODELS_DIR/diffusion_models"
+    mkdir -p "$tgt"
+    for f in "$src"/*; do
+      base="$(basename "$f")"
+      if [[ ! -e "$tgt/$base" ]]; then
+        # put a symlink (fast, saves space). Change to 'mv' to move instead.
+        ln -sf "$f" "$tgt/$base"
+        say "[link] $tgt/$base -> $f"
+      fi
+    done
+  done
+  shopt -u nullglob
+fi
 
 # ---------- helpers ----------
 clean_size(){ printf "%s" "${1//[^0-9]/}"; }
 
 remote_size(){
-  # return numeric Content-Length or "" if not available (HEAD might be blocked)
   local url="$1" sz
   set +e
   sz="$(curl -sSIL "$url" | tr -d '\r' | awk 'tolower($1)=="content-length:"{print $2}' | tail -n1)"
@@ -58,13 +82,11 @@ smart_download(){
   rsz="$(remote_size "$url" || true)"
   have=0; [[ -f "$dest" ]] && have="$(wc -c <"$dest" 2>/dev/null || echo 0)"
 
-  # already complete?
   if [[ -n "$rsz" && "$have" =~ ^[0-9]+$ && "$have" == "$rsz" ]]; then
     say "[skip] $sub/$fname (complete)"
     return 0
   fi
 
-  # resume or fresh (do not abort on curl failure here)
   set +e
   if [[ -n "$rsz" && "$have" =~ ^[0-9]+$ && "$have" -gt 0 && "$have" -lt "$rsz" ]]; then
     say "[resm] $sub/$fname ($have/$rsz)"
@@ -80,7 +102,6 @@ smart_download(){
     return 22
   fi
 
-  # verify if we know expected size
   if [[ -n "$rsz" ]]; then
     local decision
     verify_or_prompt "$dest" "$rsz" || decision=$?
@@ -113,7 +134,6 @@ download_with_fallbacks(){
     return 0
   fi
 
-  # All mirrors failed → ask for URL
   say "[FAIL] All mirrors failed for: $label"
   while true; do
     read -rp "Paste a working URL (enter to skip, 'a' to abort): " custom
@@ -133,7 +153,7 @@ download_with_fallbacks(){
   done
 }
 
-say "== Downloading WAN/T2V/I2V assets (checks + resume + mirrors) =="
+say "== Installing WAN/T2V/I2V assets into: $MODELS_DIR =="
 
 # -------- Core WAN files --------
 download_with_fallbacks "vae" "wan_2.1_vae.safetensors" \
@@ -142,36 +162,43 @@ download_with_fallbacks "vae" "wan_2.1_vae.safetensors" \
 download_with_fallbacks "text_encoders" "umt5_xxl_fp8_e4m3fn_scaled.safetensors" \
   "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"
 
-# -------- UNets from your T2V workflow --------
-download_with_fallbacks "unet" "wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors" \
+# -------- UNets (your workflow expects them in diffusion_models) --------
+download_with_fallbacks "diffusion_models" "wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors" \
   "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors"
 
-download_with_fallbacks "unet" "wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors" \
+download_with_fallbacks "diffusion_models" "wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors" \
   "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors"
 
-# -------- LoRAs (stable) --------
+# -------- LoRAs (stable + your working FusionX URL) --------
 download_with_fallbacks "loras" "Wan2.2-Lightning_I2V-A14B-4steps-lora_HIGH_fp16.safetensors" \
   "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan22-Lightning/Wan2.2-Lightning_I2V-A14B-4steps-lora_HIGH_fp16.safetensors"
 
 download_with_fallbacks "loras" "Wan2.2-Lightning_I2V-A14B-4steps-lora_LOW_fp16.safetensors" \
   "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan22-Lightning/Wan2.2-Lightning_I2V-A14B-4steps-lora_LOW_fp16.safetensors"
 
-# -------- LoRAs (flaky → multiple mirrors) --------
-download_with_fallbacks "loras" "Wan2.1_T2V_14B_FusionX_LoRA.safetensors" \
-  "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan%20LORAs/Wan2.1_T2V_14B_FusionX_LoRA.safetensors" \
-  "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan2.1_T2V_14B_FusionX_LoRA.safetensors" \
-  "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan%20LORAs/FusionX/Wan2.1_T2V_14B_FusionX_LoRA.safetensors"
-
 download_with_fallbacks "loras" "Wan2.2-Lightning_T2V-v1.1-A14B-4steps-lora_LOW_fp16.safetensors" \
   "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan22-Lightning/Wan2.2-Lightning_T2V-v1.1-A14B-4steps-lora_LOW_fp16.safetensors" \
   "https://huggingface.co/lightx2v/Wan2.2-Lightning/resolve/main/Wan2.2-Lightning_T2V-v1.1-A14B-4steps-lora_LOW_fp16.safetensors" \
   "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan22-Lightning/Wan2.2-Lightning_T2V_v1.1_A14B_4steps_lora_LOW_fp16.safetensors"
 
-# -------- Upscaler (includes YOUR mirror) --------
+download_with_fallbacks "loras" "Wan2.1_T2V_14B_FusionX_LoRA.safetensors" \
+  "https://huggingface.co/vrgamedevgirl84/Wan14BT2VFusioniX/resolve/main/FusionX_LoRa/Wan2.1_T2V_14B_FusionX_LoRA.safetensors" \
+  "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan%20LORAs/Wan2.1_T2V_14B_FusionX_LoRA.safetensors" \
+  "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan2.1_T2V_14B_FusionX_LoRA.safetensors" \
+  "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan%20LORAs/FusionX/Wan2.1_T2V_14B_FusionX_LoRA.safetensors"
+
+# -------- Upscaler (multiple mirrors incl. your folder mirror) --------
 download_with_fallbacks "upscale_models" "4x-UltraSharp.pth" \
   "https://huggingface.co/uwg/upscaler/resolve/main/4x-UltraSharp.pth" \
   "https://huggingface.co/ClarityIO/4x-UltraSharp/resolve/main/4x-UltraSharp.pth" \
   "https://huggingface.co/KohakuBlueleaf/4x-UltraSharp/resolve/main/4x-UltraSharp.pth" \
   "https://huggingface.co/madriss/chkpts/resolve/d9ae35349b0cb67e06aebbeb94316827bcd6be4a/ComfyUI/models/upscale_models/4x-UltraSharp.pth"
 
-say "== Done. Restart ComfyUI to load the new assets. =="
+# ---------- Inventory ----------
+echo
+echo "== Installed model inventory =="
+find "$MODELS_DIR" -maxdepth 2 -type f -printf "%h/%f\t%k KB\n" | sort
+du -h --max-depth=1 "$MODELS_DIR" | sort -h
+
+echo
+echo "== Done. If the UI is open, click Manager → Rescan Models, or restart ComfyUI. =="
