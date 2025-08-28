@@ -21,7 +21,6 @@ download() {
 }
 
 echo "⬇️ Downloading WAN 2.2 models (updated)..."
-download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/umt5_xxl_fp8_e4m3fn_scaled.safetensors "$ROOT/models/text_encoders"
 download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan_2.1_vae.safetensors "$ROOT/models/vae"
 download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan2.2_vae.safetensors "$ROOT/models/vae"
 download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan2.2_ti2v_5B_fp16.safetensors "$ROOT/models/diffusion_models"
@@ -30,13 +29,10 @@ download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan
 download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors "$ROOT/models/diffusion_models"
 download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors "$ROOT/models/diffusion_models"
 
-echo "⬇️ Downloading chatpig encoders..."
+echo "⬇️ Downloading text encoders (from chatpig/encoder)..."
 download https://huggingface.co/chatpig/encoder/resolve/main/umt5_xxl_fp8_e4m3fn_scaled.safetensors "$ROOT/models/text_encoders"
 download https://huggingface.co/chatpig/encoder/resolve/main/clip_l.safetensors "$ROOT/models/text_encoders"
-download https://huggingface.co/chatpig/encoder/resolve/main/clip_g.safetensors "$ROOT/models/text_encoders"
-download https://huggingface.co/chatpig/encoder/resolve/main/t5xl_fp16.safetensors "$ROOT/models/text_encoders"
-download https://huggingface.co/chatpig/encoder/resolve/main/t5xl_fp32.safetensors "$ROOT/models/text_encoders"
-download https://huggingface.co/chatpig/encoder/resolve/main/t5xxl-encoder-q8_0.gguf "$ROOT/models/text_encoders"
+download https://huggingface.co/chatpig/encoder/resolve/main/t5xxl_fp16.safetensors "$ROOT/models/text_encoders"
 
 echo "⬇️ Downloading WAN 2.2 Loras..."
 download https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Lightx2v.safetensors "$ROOT/models/loras"
@@ -45,8 +41,6 @@ download https://huggingface.co/RaphaelLiu/PusaV1/resolve/main/pusa_v1.safetenso
 echo "⬇️ Downloading Flux Kontext..."
 download https://huggingface.co/QuantStack/FLUX.1-Kontext-dev-GGUF/resolve/main/model.gguf "$ROOT/models/diffusion_models"
 download https://huggingface.co/Comfy-Org/flux1-kontext-dev_ComfyUI/resolve/main/split_files/diffusion_models/flux1-dev-kontext_fp8_scaled.safetensors "$ROOT/models/diffusion_models"
-download https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors "$ROOT/models/text_encoders"
-download https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors "$ROOT/models/text_encoders"
 download https://huggingface.co/Comfy-Org/Lumina_Image_2.0_Repackaged/resolve/main/split_files/vae/ae.safetensors "$ROOT/models/vae"
 
 echo "⬇️ Downloading Flux Krea..."
