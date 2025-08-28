@@ -14,21 +14,21 @@ mkdir -p "$ROOT/models/vae"
 mkdir -p "$ROOT/models/loras"
 mkdir -p "$ROOT/custom_nodes"
 
-# Store updated script lines for go.txt
-SCRIPT_LINES=()
+# Store updated lines to rewrite into go.txt later
+UPDATED_LINES=()
 
 download() {
   url="$1"; outdir="$2"
   echo "⬇️ Downloading: $url"
-  # Try the download
+  # Attempt download
   if ! wget --header="Authorization: Bearer $HF_TOKEN" -nc -P "$outdir" "$url"; then
     echo "❌ Failed to download: $url"
     read -p "Enter replacement URL: " new_url
     url="$new_url"
     wget --header="Authorization: Bearer $HF_TOKEN" -nc -P "$outdir" "$url"
   fi
-  # Record the (possibly updated) line for go.txt
-  SCRIPT_LINES+=("download $url \"$outdir\"")
+  # Save the (possibly updated) command for go.txt
+  UPDATED_LINES+=("download $url \"$outdir\"")
 }
 
 # ----------------- WAN 2.2 -----------------
@@ -68,7 +68,7 @@ fi
 
 echo "✅ All files downloaded and organized under $ROOT"
 
-# Write out go.txt with updated links
+# -------- Save updated script to go.txt --------
 {
   echo '#!/bin/bash'
   echo 'set -e'
@@ -83,7 +83,7 @@ echo "✅ All files downloaded and organized under $ROOT"
   echo '  wget --header="Authorization: Bearer $HF_TOKEN" -nc -P "$outdir" "$url"'
   echo '}'
   echo ''
-  for line in "${SCRIPT_LINES[@]}"; do
+  for line in "${UPDATED_LINES[@]}"; do
     echo "$line"
   done
 } > go.txt
