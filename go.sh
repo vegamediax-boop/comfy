@@ -3,26 +3,24 @@ set -e
 
 ROOT="/workspace/ComfyUI"
 
-# Ask user for HuggingFace token at runtime
+# Prompt for HuggingFace token each run
 read -sp "Enter your HuggingFace token: " HF_TOKEN
 echo ""
 
-# Create directory structure
+# Create required directories
 mkdir -p "$ROOT/models/diffusion_models"
 mkdir -p "$ROOT/models/text_encoders"
 mkdir -p "$ROOT/models/vae"
 mkdir -p "$ROOT/models/loras"
 mkdir -p "$ROOT/custom_nodes"
 
-# Function for authenticated download
 download() {
-  url="$1"
-  outdir="$2"
+  url="$1"; outdir="$2"
   echo "⬇️ Downloading: $url"
   wget --header="Authorization: Bearer $HF_TOKEN" -nc -P "$outdir" "$url"
 }
 
-echo "⬇️ Downloading WAN 2.2 models (updated links)..."
+echo "⬇️ Downloading WAN 2.2 models (updated)..."
 download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/umt5_xxl_fp8_e4m3fn_scaled.safetensors "$ROOT/models/text_encoders"
 download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan_2.1_vae.safetensors "$ROOT/models/vae"
 download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan2.2_vae.safetensors "$ROOT/models/vae"
@@ -31,6 +29,14 @@ download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan
 download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors "$ROOT/models/diffusion_models"
 download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors "$ROOT/models/diffusion_models"
 download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors "$ROOT/models/diffusion_models"
+
+echo "⬇️ Downloading chatpig encoders..."
+download https://huggingface.co/chatpig/encoder/resolve/main/umt5_xxl_fp8_e4m3fn_scaled.safetensors "$ROOT/models/text_encoders"
+download https://huggingface.co/chatpig/encoder/resolve/main/clip_l.safetensors "$ROOT/models/text_encoders"
+download https://huggingface.co/chatpig/encoder/resolve/main/clip_g.safetensors "$ROOT/models/text_encoders"
+download https://huggingface.co/chatpig/encoder/resolve/main/t5xl_fp16.safetensors "$ROOT/models/text_encoders"
+download https://huggingface.co/chatpig/encoder/resolve/main/t5xl_fp32.safetensors "$ROOT/models/text_encoders"
+download https://huggingface.co/chatpig/encoder/resolve/main/t5xxl-encoder-q8_0.gguf "$ROOT/models/text_encoders"
 
 echo "⬇️ Downloading WAN 2.2 Loras..."
 download https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Lightx2v.safetensors "$ROOT/models/loras"
@@ -55,4 +61,4 @@ if [ ! -d "$ROOT/custom_nodes/ComfyUI-MMAudio" ]; then
   git clone https://github.com/kijai/ComfyUI-MMAudio "$ROOT/custom_nodes/ComfyUI-MMAudio"
 fi
 
-echo "✅ All downloads complete. Files placed in $ROOT"
+echo "✅ All files downloaded and organized under $ROOT"
