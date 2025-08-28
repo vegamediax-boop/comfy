@@ -3,59 +3,56 @@ set -e
 
 ROOT="/workspace/ComfyUI"
 
+# Ask user for HuggingFace token at runtime
+read -sp "Enter your HuggingFace token: " HF_TOKEN
+echo ""
+
 # Create directory structure
-mkdir -p $ROOT/models/diffusion_models
-mkdir -p $ROOT/models/text_encoders
-mkdir -p $ROOT/models/vae
-mkdir -p $ROOT/models/loras
-mkdir -p $ROOT/custom_nodes
+mkdir -p "$ROOT/models/diffusion_models"
+mkdir -p "$ROOT/models/text_encoders"
+mkdir -p "$ROOT/models/vae"
+mkdir -p "$ROOT/models/loras"
+mkdir -p "$ROOT/custom_nodes"
 
-echo "⬇️ Downloading WAN 2.2 models..."
-# WAN 2.2 Repackaged + GGUF
-wget -nc -P $ROOT/models/diffusion_models https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/model.safetensors
-wget -nc -P $ROOT/models/diffusion_models https://huggingface.co/QuantStack/Wan2.2-TI2V-5B-GGUF/resolve/main/model.gguf
-wget -nc -P $ROOT/models/diffusion_models https://huggingface.co/QuantStack/Wan2.2-T2V-A14B-GGUF/resolve/main/model.gguf
-wget -nc -P $ROOT/models/diffusion_models https://huggingface.co/QuantStack/Wan2.2-I2V-A14B-GGUF/resolve/main/model.gguf
+# Function for authenticated download
+download() {
+  url="$1"
+  outdir="$2"
+  echo "⬇️ Downloading: $url"
+  wget --header="Authorization: Bearer $HF_TOKEN" -nc -P "$outdir" "$url"
+}
 
-# WAN 2.2 Text Encoders
-wget -nc -P $ROOT/models/text_encoders https://huggingface.co/city96/umt5-xxl-encoder-gguf/resolve/main/umt5-xxl-encoder.gguf
-wget -nc -P $ROOT/models/text_encoders https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
+echo "⬇️ Downloading WAN 2.2 models (updated links)..."
+download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/umt5_xxl_fp8_e4m3fn_scaled.safetensors "$ROOT/models/text_encoders"
+download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan_2.1_vae.safetensors "$ROOT/models/vae"
+download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan2.2_vae.safetensors "$ROOT/models/vae"
+download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan2.2_ti2v_5B_fp16.safetensors "$ROOT/models/diffusion_models"
+download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors "$ROOT/models/diffusion_models"
+download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors "$ROOT/models/diffusion_models"
+download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors "$ROOT/models/diffusion_models"
+download https://huggingface.co/comfyanonymous/ComfyUI_examples/resolve/main/wan22/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors "$ROOT/models/diffusion_models"
 
-# WAN 2.2 Loras
-wget -nc -P $ROOT/models/loras https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Lightx2v.safetensors
-wget -nc -P $ROOT/models/loras https://huggingface.co/RaphaelLiu/PusaV1/resolve/main/pusa_v1.safetensors
-
+echo "⬇️ Downloading WAN 2.2 Loras..."
+download https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Lightx2v.safetensors "$ROOT/models/loras"
+download https://huggingface.co/RaphaelLiu/PusaV1/resolve/main/pusa_v1.safetensors "$ROOT/models/loras"
 
 echo "⬇️ Downloading Flux Kontext..."
-# Flux Kontext models
-wget -nc -P $ROOT/models/diffusion_models https://huggingface.co/QuantStack/FLUX.1-Kontext-dev-GGUF/resolve/main/model.gguf
-wget -nc -P $ROOT/models/diffusion_models https://huggingface.co/Comfy-Org/flux1-kontext-dev_ComfyUI/resolve/main/split_files/diffusion_models/flux1-dev-kontext_fp8_scaled.safetensors
-
-# Flux Kontext text encoders
-wget -nc -P $ROOT/models/text_encoders https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors
-wget -nc -P $ROOT/models/text_encoders https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors
-
-# Flux Kontext VAE
-wget -nc -P $ROOT/models/vae https://huggingface.co/Comfy-Org/Lumina_Image_2.0_Repackaged/resolve/main/split_files/vae/ae.safetensors
-
+download https://huggingface.co/QuantStack/FLUX.1-Kontext-dev-GGUF/resolve/main/model.gguf "$ROOT/models/diffusion_models"
+download https://huggingface.co/Comfy-Org/flux1-kontext-dev_ComfyUI/resolve/main/split_files/diffusion_models/flux1-dev-kontext_fp8_scaled.safetensors "$ROOT/models/diffusion_models"
+download https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors "$ROOT/models/text_encoders"
+download https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors "$ROOT/models/text_encoders"
+download https://huggingface.co/Comfy-Org/Lumina_Image_2.0_Repackaged/resolve/main/split_files/vae/ae.safetensors "$ROOT/models/vae"
 
 echo "⬇️ Downloading Flux Krea..."
-# Flux Krea models
-wget -nc -P $ROOT/models/diffusion_models https://huggingface.co/QuantStack/FLUX.1-Krea-dev-GGUF/resolve/main/model.gguf
-wget -nc -P $ROOT/models/diffusion_models https://huggingface.co/Comfy-Org/FLUX.1-Krea-dev_ComfyUI/resolve/main/split_files/diffusion_models/flux1-krea-dev_fp8_scaled.safetensors
-
-# Flux Krea VAE
-wget -nc -P $ROOT/models/vae https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/ae.safetensors
-
+download https://huggingface.co/QuantStack/FLUX.1-Krea-dev-GGUF/resolve/main/model.gguf "$ROOT/models/diffusion_models"
+download https://huggingface.co/Comfy-Org/FLUX.1-Krea-dev_ComfyUI/resolve/main/split_files/diffusion_models/flux1-krea-dev_fp8_scaled.safetensors "$ROOT/models/diffusion_models"
+download https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/ae.safetensors "$ROOT/models/vae"
 
 echo "⬇️ Downloading MM-Audio..."
-# MM-Audio models
-wget -nc -P $ROOT/models/diffusion_models https://huggingface.co/Kijai/MMAudio_safetensors/resolve/main/mm_audio_model.safetensors
+download https://huggingface.co/Kijai/MMAudio_safetensors/resolve/main/mm_audio_model.safetensors "$ROOT/models/diffusion_models"
 
-# MM-Audio Node (git clone)
 if [ ! -d "$ROOT/custom_nodes/ComfyUI-MMAudio" ]; then
-  git clone https://github.com/kijai/ComfyUI-MMAudio $ROOT/custom_nodes/ComfyUI-MMAudio
+  git clone https://github.com/kijai/ComfyUI-MMAudio "$ROOT/custom_nodes/ComfyUI-MMAudio"
 fi
-
 
 echo "✅ All downloads complete. Files placed in $ROOT"
